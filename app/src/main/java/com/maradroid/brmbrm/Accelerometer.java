@@ -1,169 +1,338 @@
 package com.maradroid.brmbrm;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.util.DisplayMetrics;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 /**
  * Created by mara on 10/10/15.
  */
-public class Accelerometer extends AppCompatActivity implements SensorEventListener {
+public class Accelerometer extends BaseActivity implements SensorEventListener, Connection {
 
     private SensorManager mSensorManager;
     private Sensor mSensor;
 
-    private TextView lijeviMotori, desniMotori;
-    private boolean isConnected, start = false;
+    private TextView leftMotorsTV, rightMotorsTV, connectedTV;
+    private LinearLayout forwardLL, reverseLL, forwardCircleLL, reverseCircleLL, textPlaceHolderLL, connectLL, selfDrivingLL;
+    private boolean messageDisplayed, movingForward, movingReverse, inSelfDrivingMode;
+    private int screenWidth,screenHeight;
+    private float screenDensity;
+    private AnimatorSet scaleDown;
+
+    private String lastSpeed = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.accelerometer_layout);
 
-        isConnected = MainActivity.isConnected();
+        setConnectionInterface(this);
+
+        getScreenParameters();
+        initSensor();
+        initViews();
+
+    }
+
+    private void initViews() {
+
+        leftMotorsTV = (TextView) findViewById(R.id.lijevi_motori_tv);
+        rightMotorsTV = (TextView) findViewById(R.id.desni_motori_tv);
+        connectedTV = (TextView) findViewById(R.id.povezi_tv);
+
+        forwardLL = (LinearLayout) findViewById(R.id.forward_ll);
+        forwardCircleLL = (LinearLayout) findViewById(R.id.forward_circle_ll);
+        reverseLL = (LinearLayout) findViewById(R.id.reverse_ll);
+        reverseCircleLL = (LinearLayout)  findViewById(R.id.reverse_circle_ll);
+        textPlaceHolderLL = (LinearLayout) findViewById(R.id.text_placeholder_ll);
+        connectLL = (LinearLayout) findViewById(R.id.connect_circle_ll);
+        selfDrivingLL = (LinearLayout) findViewById(R.id.self_driving_circle_ll);
+
+        hidePlaceholderElements(false, connectLL);
+        setupForwardLLTouchListener();
+        setupReverseLLTouchListener();
+    }
+
+    private void hidePlaceholderElements(boolean animated, LinearLayout animatedObject) {
+
+        int movingDistance = dpToPx(150);
+
+        if (animated) {
+
+            textPlaceHolderLL.clearAnimation();
+            textPlaceHolderLL.animate().translationY(-movingDistance).setDuration(2000);
+            textPlaceHolderLL.animate().alpha(0).setDuration(2000);
+
+            forwardCircleLL.clearAnimation();
+            forwardCircleLL.animate().translationX(movingDistance).setDuration(2000);
+            forwardCircleLL.animate().alpha(0).setDuration(2000);
+
+            reverseCircleLL.clearAnimation();
+            reverseCircleLL.animate().translationX(-movingDistance).setDuration(2000);
+            reverseCircleLL.animate().alpha(0).setDuration(2000);
+
+            if (animatedObject.equals(connectLL)) {
+                connectLL.clearAnimation();
+                connectLL.animate().translationY(0).setDuration(2000);
+                connectLL.animate().scaleX(1).scaleY(1).setDuration(2000);
+
+                selfDrivingLL.clearAnimation();
+                selfDrivingLL.animate().scaleX(0).scaleY(0).setDuration(2000);
+            }
+
+            setBlinkAnimation(animatedObject);
+
+        } else {
+
+            textPlaceHolderLL.clearAnimation();
+            textPlaceHolderLL.setY(-movingDistance);
+            textPlaceHolderLL.setAlpha(0);
+
+            forwardCircleLL.clearAnimation();
+            forwardCircleLL.setX(movingDistance);
+            forwardCircleLL.setAlpha(0);
+
+            reverseCircleLL.clearAnimation();
+            reverseCircleLL.setX(-movingDistance);
+            reverseCircleLL.setAlpha(0);
+
+            selfDrivingLL.clearAnimation();
+            selfDrivingLL.setScaleX(0);
+            selfDrivingLL.setScaleY(0);
+
+            setBlinkAnimation(animatedObject);
+        }
+    }
+
+    private void showPlaceholderElements(boolean workWithConnectLL) {
+
+        textPlaceHolderLL.clearAnimation();
+        textPlaceHolderLL.animate().translationY(0).setDuration(2000);
+        textPlaceHolderLL.animate().alpha(1).setDuration(2000);
+
+        forwardCircleLL.clearAnimation();
+        forwardCircleLL.animate().translationX(0).setDuration(2000);
+        forwardCircleLL.animate().alpha(1).setDuration(2000);
+
+        reverseCircleLL.clearAnimation();
+        reverseCircleLL.animate().translationX(0).setDuration(2000);
+        reverseCircleLL.animate().alpha(1).setDuration(2000);
+
+        if (workWithConnectLL) {
+
+            scaleDown.cancel();
+            connectLL.clearAnimation();
+            connectLL.animate().translationY(dpToPx(120)).setDuration(2000);
+            connectLL.animate().scaleX(0.8f).scaleY(0.8f).setDuration(2000);
+
+            selfDrivingLL.clearAnimation();
+            selfDrivingLL.animate().scaleX(0.8f).scaleY(0.8f).setDuration(2000);
+        }
+
+    }
+
+    private void setBlinkAnimation(LinearLayout animatedObject) {
+
+        if (scaleDown != null) {
+            scaleDown.cancel();
+        }
+
+        ObjectAnimator scaleDownX = ObjectAnimator.ofFloat(animatedObject, "scaleX", 0.9f);
+        scaleDownX.setRepeatMode(ValueAnimator.REVERSE);
+        scaleDownX.setRepeatCount(ValueAnimator.INFINITE);
+        scaleDownX.setDuration(3000);
+
+        ObjectAnimator scaleDownY = ObjectAnimator.ofFloat(animatedObject, "scaleY", 0.9f);
+        scaleDownY.setRepeatMode(ValueAnimator.REVERSE);
+        scaleDownY.setRepeatCount(ValueAnimator.INFINITE);
+        scaleDownY.setDuration(3000);
+
+        scaleDown = new AnimatorSet();
+        scaleDown.play(scaleDownX).with(scaleDownY);
+        scaleDown.start();
+    }
+
+    private void initSensor() {
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+    }
 
-        lijeviMotori = (TextView) findViewById(R.id.lijevi_motori_tv);
-        desniMotori = (TextView) findViewById(R.id.desni_motori_tv);
+    private void setupForwardLLTouchListener() {
+
+        forwardCircleLL.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+
+                switch (event.getAction() & MotionEvent.ACTION_MASK) {
+
+                    case MotionEvent.ACTION_DOWN:
+                        movingForward = true;
+                        forwardCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f).setDuration(0);
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        forwardCircleLL.animate().alpha(1).scaleY(1).scaleX(1).setDuration(0);
+                        movingForward = false;
+                        messageDisplayed = false;
+                        break;
+                }
+
+                return true;
+            }
+        });
+    }
+
+    private void setupReverseLLTouchListener() {
+
+        reverseCircleLL.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+
+                switch (event.getAction() & MotionEvent.ACTION_MASK) {
+
+                    case MotionEvent.ACTION_DOWN:
+                        movingReverse = true;
+                        reverseCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f).setDuration(0);
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        reverseCircleLL.animate().alpha(1).scaleY(1).scaleX(1).setDuration(0);
+                        movingReverse = false;
+                        messageDisplayed = false;
+                        break;
+                }
+
+                return true;
+            }
+        });
+    }
+
+    private void sendData(String motorsSpeed) {
+
+        if(isConnected() && !motorsSpeed.equals(lastSpeed)){
+            lastSpeed = motorsSpeed;
+
+            if(!sendMessage(motorsSpeed) && !messageDisplayed){
+                Toast.makeText(getApplicationContext(),
+                        "Slanje neuspjelo!", Toast.LENGTH_SHORT)
+                        .show();
+
+                messageDisplayed = true;
+            }
+        }
+    }
+
+    public void getScreenParameters(){
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        this.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        screenWidth = metrics.widthPixels;
+        screenHeight = metrics.heightPixels;
+
+        screenDensity = getApplicationContext().getResources().getDisplayMetrics().density;
+    }
+
+    public int dpToPx(int dp){
+        return Math.round((float)dp * screenDensity);
+    }
+
+    public void connectButton(View v) {
+
+        if (inSelfDrivingMode) {
+            inSelfDrivingMode = false;
+        }
+        getDevices();
+    }
+
+    public void selfDrivingButton(View v) {
+
+        if (!inSelfDrivingMode) { // pokreni self driving mod
+
+            sendData("#");
+            inSelfDrivingMode = true;
+            selfDrivingLL.clearAnimation();
+            hidePlaceholderElements(true, selfDrivingLL);
+            mSensorManager.unregisterListener(this);
+
+        } else {
+
+            sendData("$");
+            inSelfDrivingMode = false;
+            scaleDown.cancel();
+            showPlaceholderElements(false);
+            mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+
+
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        float posX = event.values[0];
         float posY = event.values[1];
-        boolean minusNeeded = false;
 
         // accelerometer daje vrijednosti od -9.81 do 9.81
         // ovdje se koriste X i Y os
         // za X os uzimaju se vrijednosti od 0 (max naprijed) do 8 (max nazad)
         // za Y os uzimaju se vrijednosti od -4 (max lijevo) do 4 (max desno)
 
-        if(posX > 8){
+        if (movingForward != movingReverse && !inSelfDrivingMode) {
 
-            posX = 8;
-            minusNeeded = false;
+            if (movingForward) {
 
-        }else if(posX < 0){
+                if (posY <= 2 && posY >= -2) {
+                    sendData("255,255\n");
+                    leftMotorsTV.setText("Left motor\nmax");
+                    rightMotorsTV.setText("Right motor\nmax");
 
-            posX = 0;
-            minusNeeded = false;
+                }else if (posY > 2) {
+                    sendData("255,0\n");
+                    leftMotorsTV.setText("Left motor\nmax");
+                    rightMotorsTV.setText("Right motor\n0");
 
-        }else if(posX > 4 && posX <= 8){
+                } else if (posY < -2) {
+                    sendData("0,255\n");
+                    leftMotorsTV.setText("Left motor\n0");
+                    rightMotorsTV.setText("Right motor\nmax");
+                }
 
-            minusNeeded = true;
-            posX = 8 - posX;
+            } else if (movingReverse) {
 
-        }else if(posX >= 0 && posX <= 4){
+                if (posY <= 2 && posY >= -2) {
+                    sendData("-255,-255\n");
+                    leftMotorsTV.setText("Left motor\nmax");
+                    rightMotorsTV.setText("Right motor\nmax");
 
-            minusNeeded = false;
-        }
+                }else if (posY > 2) {
+                    sendData("-255,0\n");
+                    leftMotorsTV.setText("Left motor\nmax");
+                    rightMotorsTV.setText("Right motor\n0");
 
-        if(posY < -4){
-
-            posY = -4;
-
-        }else if(posY > 4){
-
-            posY = 4;
-        }
-
-        float multiplayerX;
-
-        if(minusNeeded){
-            multiplayerX = ((4 - posX)/(4)) * -1;
-        }else{
-            multiplayerX = ((4 - posX)/(4));
-        }
-
-
-        float multiplayerY = 1 - ((4 - posY)/(4));
-
-        //Log.e("maradroid", "multiplayerX " + multiplayerX);
-        //Log.e("maradroid", "multiplayerY " +multiplayerY);
-
-        CalcAndSend(multiplayerY, multiplayerX);
-
-        // X pogon
-        // Y skretanje
-
-    }
-
-    public void CalcAndSend(float multiplayerX, float multiplayerY){
-
-        // Y pogon
-        // X skretanje
-
-        String leftMotors = "0", rightMotors = "0";
-
-        // naprijed lijevo
-        if(multiplayerY > 0 && multiplayerX < 0){
-
-            leftMotors = "LF" + Math.round(255 * multiplayerY * (1 + multiplayerX)) + "\n";
-            rightMotors = "RF" + Math.round(255 * multiplayerY) + "\n";
-        }
-
-        // naprijed desno
-        if(multiplayerY > 0 && multiplayerX > 0){
-
-            leftMotors = "LF" + Math.round(255 * multiplayerY) + "\n";
-            rightMotors = "RF" + Math.round(255 * multiplayerY * (1 -multiplayerX)) + "\n";
-        }
-
-        //nazad lijevo
-        if(multiplayerY < 0 && multiplayerX < 0){
-
-            leftMotors = "LB" + Math.round(255 * Math.abs(multiplayerY) * (1 + multiplayerX)) + "\n";
-            rightMotors = "RB" + Math.round(255 * Math.abs(multiplayerY)) + "\n";
-        }
-
-        // nazad desno
-        if(multiplayerY < 0 && multiplayerX > 0){
-
-            leftMotors = "LB" + Math.round(255 * Math.abs(multiplayerY)) + "\n";
-            rightMotors = "RB" + Math.round(255 * Math.abs(multiplayerY) * (1 - multiplayerX)) + "\n";
-        }
-
-        // stop
-        if(multiplayerX == 0 && multiplayerY == 0){
-
-            leftMotors = "0" + "\n";
-            rightMotors = "0" + "\n";
-        }
-
-        lijeviMotori.setText(leftMotors);
-        desniMotori.setText(rightMotors);
-
-        if(isConnected && start){
-            if(!MainActivity.sendMessage(leftMotors + rightMotors)){
-                Toast.makeText(getApplicationContext(),
-                        "Slanje neuspjelo!", Toast.LENGTH_SHORT)
-                        .show();
+                } else if (posY < -2) {
+                    sendData("0,-255\n");
+                    leftMotorsTV.setText("Left motor\n0");
+                    rightMotorsTV.setText("Right motor\nmax");
+                }
             }
+
+        } else {
+            sendData("0/0\n");
+            leftMotorsTV.setText("Left motor\n0");
+            rightMotorsTV.setText("Right motor\n0");
         }
-
-    }
-
-    public void StartStopButton(View v){
-
-        if(start){
-            start = false;
-            ((TextView) v).setText("Start");
-        }else{
-            start = true;
-            ((TextView) v).setText("Stop");
-        }
-
     }
 
     @Override
@@ -175,13 +344,36 @@ public class Accelerometer extends AppCompatActivity implements SensorEventListe
     protected void onResume() {
         super.onResume();
 
-        mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        hideStatusBar();
+
+        if (isConnected()) {
+            mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        mSensorManager.unregisterListener(this);
+        if (isConnected()) {
+            mSensorManager.unregisterListener(this);
+        }
+    }
+
+    @Override
+    public void connectionCompleted() {
+
+        if (isConnected()) {
+            hideStatusBar();
+            mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            showPlaceholderElements(true);
+            connectedTV.setText("Disconnect");
+
+        }else {
+            mSensorManager.unregisterListener(this);
+            hidePlaceholderElements(true, connectLL);
+            connectedTV.setText("BrmBrm");
+        }
+
     }
 }

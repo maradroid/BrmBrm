@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,18 +29,18 @@ public abstract class BaseActivity extends AppCompatActivity {
     private BluetoothSocket mSocket = null;
     private static OutputStream mOutStream = null;
     private static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static boolean spojeno = false;
+    private boolean spojeno = false;
     private String[] devices;
-    protected TextView connected_btn;
+    private Connection connection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+
+        hideStatusBar();
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        connected_btn = (TextView) findViewById(R.id.povezi_btn);
     }
 
     public static boolean sendMessage(String message){
@@ -64,7 +65,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 try {
                     mSocket.close();
                     spojeno = false;
-                    connected_btn.setText("Poveži");
+                    connection.connectionCompleted();
                 } catch (IOException e) {
                     Toast.makeText(getApplicationContext(),
                             "Veza nije prekinuta!\nPokušajte ponovno kasnije.", Toast.LENGTH_SHORT)
@@ -128,8 +129,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                                     .show();
 
                             spojeno = true;
-                            connected_btn.setText("Odveži");
-                            //if(dialog!=null) dialog.cancel();
+                            connection.connectionCompleted();
                         }
                     });
 
@@ -178,14 +178,25 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode ==1 && resultCode == -1){
-            Toast.makeText(getApplicationContext(),"Bluetooth uključen!\nPonovno pritisnite gumb Poveži!", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Bluetooth uključen!\nPonovno pritisnite gumb Poveži!", Toast.LENGTH_LONG).show();
         }else if (requestCode == 1 && resultCode == 0) {
-            Toast.makeText(getApplicationContext(),"Bluetooth nije uključen!", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Bluetooth nije uključen!", Toast.LENGTH_LONG).show();
         }
     }
 
-    public static boolean isConnected(){
+    public boolean isConnected(){
         return spojeno;
+    }
+
+    public void setConnectionInterface(Connection connection) {
+        this.connection = connection;
+    }
+
+    public void hideStatusBar() {
+
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override

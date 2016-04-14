@@ -19,16 +19,28 @@ import android.widget.Toast;
 /**
  * Created by mara on 10/10/15.
  */
-public class Accelerometer extends BaseActivity implements SensorEventListener, Connection {
+public class MainActivity extends BaseActivity implements SensorEventListener, Connection {
 
     private SensorManager mSensorManager;
     private Sensor mSensor;
 
-    private TextView leftMotorsTV, rightMotorsTV, connectedTV;
-    private LinearLayout forwardLL, reverseLL, forwardCircleLL, reverseCircleLL, textPlaceHolderLL, connectLL, selfDrivingLL;
-    private boolean messageDisplayed, movingForward, movingReverse, inSelfDrivingMode;
-    private int screenWidth,screenHeight;
+    private TextView leftMotorsTV;
+    private TextView rightMotorsTV;
+    private TextView connectedTV;
+
+    private LinearLayout forwardCircleLL;
+    private LinearLayout reverseCircleLL;
+    private LinearLayout textPlaceHolderLL;
+    private LinearLayout connectLL;
+    private LinearLayout selfDrivingLL;
+
+    private boolean messageDisplayed;
+    private boolean movingForward;
+    private boolean movingReverse;
+    private boolean inSelfDrivingMode;
+
     private float screenDensity;
+
     private AnimatorSet scaleDown;
 
     private String lastSpeed = "";
@@ -52,9 +64,7 @@ public class Accelerometer extends BaseActivity implements SensorEventListener, 
         rightMotorsTV = (TextView) findViewById(R.id.desni_motori_tv);
         connectedTV = (TextView) findViewById(R.id.povezi_tv);
 
-        forwardLL = (LinearLayout) findViewById(R.id.forward_ll);
         forwardCircleLL = (LinearLayout) findViewById(R.id.forward_circle_ll);
-        reverseLL = (LinearLayout) findViewById(R.id.reverse_ll);
         reverseCircleLL = (LinearLayout)  findViewById(R.id.reverse_circle_ll);
         textPlaceHolderLL = (LinearLayout) findViewById(R.id.text_placeholder_ll);
         connectLL = (LinearLayout) findViewById(R.id.connect_circle_ll);
@@ -239,8 +249,6 @@ public class Accelerometer extends BaseActivity implements SensorEventListener, 
 
         DisplayMetrics metrics = new DisplayMetrics();
         this.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        screenWidth = metrics.widthPixels;
-        screenHeight = metrics.heightPixels;
 
         screenDensity = getApplicationContext().getResources().getDisplayMetrics().density;
     }
@@ -254,6 +262,7 @@ public class Accelerometer extends BaseActivity implements SensorEventListener, 
         if (inSelfDrivingMode) {
             inSelfDrivingMode = false;
         }
+
         getDevices();
     }
 

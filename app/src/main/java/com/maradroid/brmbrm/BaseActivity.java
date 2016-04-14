@@ -21,14 +21,16 @@ import java.util.UUID;
 /**
  * Created by mara on 10/9/15.
  */
-public abstract class BaseActivity extends AppCompatActivity {
+public class BaseActivity extends AppCompatActivity {
 
+    private static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private BluetoothAdapter mBluetoothAdapter;
     private Set<BluetoothDevice> pairedDevices;
+
     private BluetoothSocket mSocket = null;
-    private static OutputStream mOutStream = null;
-    private static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private OutputStream mOutStream = null;
+
     private boolean spojeno = false;
     private String[] devices;
     private Connection connection;
@@ -43,7 +45,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     }
 
-    public static boolean sendMessage(String message){
+    public boolean sendMessage(String message){
 
         try {
 

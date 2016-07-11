@@ -10,6 +10,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -20,6 +21,10 @@ import android.widget.Toast;
  * Created by mara on 10/10/15.
  */
 public class MainActivity extends BaseActivity implements SensorEventListener, Connection {
+
+    private static final int FORWARD = 0;
+    private static final int REVERSE = 1;
+    private static final int NEUTRAL = 2;
 
     private SensorManager mSensorManager;
     private Sensor mSensor;
@@ -44,6 +49,8 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
     private AnimatorSet scaleDown;
 
     private String lastSpeed = "";
+
+    private int lastDirection = NEUTRAL;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -234,6 +241,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
         if(isConnected() && !motorsSpeed.equals(lastSpeed)){
             lastSpeed = motorsSpeed;
+            Log.e("maradroid", motorsSpeed);
 
             if(!sendMessage(motorsSpeed) && !messageDisplayed){
                 Toast.makeText(getApplicationContext(),
@@ -302,6 +310,12 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
             if (movingForward) {
 
+                if (lastDirection == REVERSE) {
+                    sendData("0/0\n");
+                }
+
+                lastDirection = FORWARD;
+
                 if (posY <= 2 && posY >= -2) {
                     sendData("255,255\n");
                     leftMotorsTV.setText("Left motor\nmax");
@@ -319,6 +333,12 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
                 }
 
             } else if (movingReverse) {
+
+                if (lastDirection == FORWARD) {
+                    sendData("0/0\n");
+                }
+
+                lastDirection = REVERSE;
 
                 if (posY <= 2 && posY >= -2) {
                     sendData("-255,-255\n");
@@ -338,6 +358,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
             }
 
         } else {
+            lastDirection = NEUTRAL;
             sendData("0/0\n");
             leftMotorsTV.setText("Left motor\n0");
             rightMotorsTV.setText("Right motor\n0");

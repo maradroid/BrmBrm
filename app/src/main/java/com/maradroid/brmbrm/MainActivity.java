@@ -4,6 +4,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -14,6 +15,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,6 +41,9 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
     private LinearLayout connectLL;
     private LinearLayout selfDrivingLL;
 
+    private SeekBar sbLeftMotorPower;
+    private SeekBar sbRightMotorPower;
+
     private boolean messageDisplayed;
     private boolean movingForward;
     private boolean movingReverse;
@@ -51,17 +56,23 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
     private String lastSpeed = "";
 
     private int lastDirection = NEUTRAL;
+    private int leftMotorPower = 255;
+    private int rightMotorPower = 255;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.accelerometer_layout);
 
-        setConnectionInterface(this);
 
-        getScreenParameters();
-        initSensor();
-        initViews();
+        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+
+            setConnectionInterface(this);
+
+            getScreenParameters();
+            initSensor();
+            initViews();
+        }
 
     }
 
@@ -77,9 +88,14 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
         connectLL = (LinearLayout) findViewById(R.id.connect_circle_ll);
         selfDrivingLL = (LinearLayout) findViewById(R.id.self_driving_circle_ll);
 
+        sbLeftMotorPower = (SeekBar) findViewById(R.id.sb_left_motor);
+        sbRightMotorPower = (SeekBar) findViewById(R.id.sb_right_motor);
+
         hidePlaceholderElements(false, connectLL);
         setupForwardLLTouchListener();
         setupReverseLLTouchListener();
+        setupLeftMotorPower();
+        setupRightMotorPower();
     }
 
     private void hidePlaceholderElements(boolean animated, LinearLayout animatedObject) {
@@ -89,24 +105,29 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
         if (animated) {
 
             textPlaceHolderLL.clearAnimation();
-            textPlaceHolderLL.animate().translationY(-movingDistance).setDuration(2000);
-            textPlaceHolderLL.animate().alpha(0).setDuration(2000);
+            textPlaceHolderLL.animate().translationY(-movingDistance);
+            textPlaceHolderLL.animate().alpha(0);
 
             forwardCircleLL.clearAnimation();
-            forwardCircleLL.animate().translationX(movingDistance).setDuration(2000);
-            forwardCircleLL.animate().alpha(0).setDuration(2000);
+            forwardCircleLL.animate().translationX(movingDistance);
+            forwardCircleLL.animate().alpha(0);
 
             reverseCircleLL.clearAnimation();
-            reverseCircleLL.animate().translationX(-movingDistance).setDuration(2000);
-            reverseCircleLL.animate().alpha(0).setDuration(2000);
+            reverseCircleLL.animate().translationX(-movingDistance);
+            reverseCircleLL.animate().alpha(0);
+
+            sbRightMotorPower.animate().alpha(0);
+            sbRightMotorPower.setVisibility(View.GONE);
+            sbLeftMotorPower.animate().alpha(0);
+            sbLeftMotorPower.setVisibility(View.GONE);
 
             if (animatedObject.equals(connectLL)) {
                 connectLL.clearAnimation();
-                connectLL.animate().translationY(0).setDuration(2000);
-                connectLL.animate().scaleX(1).scaleY(1).setDuration(2000);
+                connectLL.animate().translationY(0);
+                connectLL.animate().scaleX(1).scaleY(1);
 
                 selfDrivingLL.clearAnimation();
-                selfDrivingLL.animate().scaleX(0).scaleY(0).setDuration(2000);
+                selfDrivingLL.animate().scaleX(0).scaleY(0);
             }
 
             setBlinkAnimation(animatedObject);
@@ -136,28 +157,81 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
     private void showPlaceholderElements(boolean workWithConnectLL) {
 
         textPlaceHolderLL.clearAnimation();
-        textPlaceHolderLL.animate().translationY(0).setDuration(2000);
-        textPlaceHolderLL.animate().alpha(1).setDuration(2000);
+        textPlaceHolderLL.animate().translationY(0);
+        textPlaceHolderLL.animate().alpha(1);
 
         forwardCircleLL.clearAnimation();
-        forwardCircleLL.animate().translationX(0).setDuration(2000);
-        forwardCircleLL.animate().alpha(1).setDuration(2000);
+        forwardCircleLL.animate().translationX(0);
+        forwardCircleLL.animate().alpha(1);
 
         reverseCircleLL.clearAnimation();
-        reverseCircleLL.animate().translationX(0).setDuration(2000);
-        reverseCircleLL.animate().alpha(1).setDuration(2000);
+        reverseCircleLL.animate().translationX(0);
+        reverseCircleLL.animate().alpha(1);
+
+        sbRightMotorPower.animate().alpha(1);
+        sbRightMotorPower.setVisibility(View.VISIBLE);
+        sbLeftMotorPower.animate().alpha(1);
+        sbLeftMotorPower.setVisibility(View.VISIBLE);
 
         if (workWithConnectLL) {
 
             scaleDown.cancel();
             connectLL.clearAnimation();
-            connectLL.animate().translationY(dpToPx(120)).setDuration(2000);
-            connectLL.animate().scaleX(0.8f).scaleY(0.8f).setDuration(2000);
+            connectLL.animate().translationY(dpToPx(120));
+            connectLL.animate().scaleX(0.8f).scaleY(0.8f);
 
             selfDrivingLL.clearAnimation();
-            selfDrivingLL.animate().scaleX(0.8f).scaleY(0.8f).setDuration(2000);
+            selfDrivingLL.animate().scaleX(0.8f).scaleY(0.8f);
         }
 
+    }
+
+    private void setupLeftMotorPower() {
+
+        sbLeftMotorPower.setProgress(sbLeftMotorPower.getMax());
+        sbLeftMotorPower.setAlpha(0);
+        sbLeftMotorPower.setVisibility(View.GONE);
+
+        sbLeftMotorPower.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                leftMotorPower = seekBar.getProgress();
+            }
+        });
+    }
+
+    private void setupRightMotorPower() {
+
+        sbRightMotorPower.setProgress(sbRightMotorPower.getMax());
+        sbRightMotorPower.setAlpha(0);
+        sbRightMotorPower.setVisibility(View.GONE);
+
+        sbRightMotorPower.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                rightMotorPower = seekBar.getProgress();
+            }
+        });
     }
 
     private void setBlinkAnimation(LinearLayout animatedObject) {
@@ -197,11 +271,11 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
                     case MotionEvent.ACTION_DOWN:
                         movingForward = true;
-                        forwardCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f).setDuration(0);
+                        forwardCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f);
                         break;
 
                     case MotionEvent.ACTION_UP:
-                        forwardCircleLL.animate().alpha(1).scaleY(1).scaleX(1).setDuration(0);
+                        forwardCircleLL.animate().alpha(1).scaleY(1).scaleX(1);
                         movingForward = false;
                         messageDisplayed = false;
                         break;
@@ -222,11 +296,11 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
                     case MotionEvent.ACTION_DOWN:
                         movingReverse = true;
-                        reverseCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f).setDuration(0);
+                        reverseCircleLL.animate().alpha(0.8f).scaleY(0.9f).scaleX(0.9f);
                         break;
 
                     case MotionEvent.ACTION_UP:
-                        reverseCircleLL.animate().alpha(1).scaleY(1).scaleX(1).setDuration(0);
+                        reverseCircleLL.animate().alpha(1).scaleY(1).scaleX(1);
                         movingReverse = false;
                         messageDisplayed = false;
                         break;
@@ -269,6 +343,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
         if (inSelfDrivingMode) {
             inSelfDrivingMode = false;
+            sendData("$0/0\n");
         }
 
         getDevices();
@@ -317,19 +392,22 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
                 lastDirection = FORWARD;
 
                 if (posY <= 2 && posY >= -2) {
-                    sendData("255,255\n");
-                    leftMotorsTV.setText("Left motor\nmax");
-                    rightMotorsTV.setText("Right motor\nmax");
+                    String speedValues = leftMotorPower + "," + rightMotorPower + "\n";
+                    sendData(speedValues);
+                    leftMotorsTV.setText("Left motor\n" + leftMotorPower);
+                    rightMotorsTV.setText("Right motor\n" + rightMotorPower);
 
                 }else if (posY > 2) {
-                    sendData("255,0\n");
-                    leftMotorsTV.setText("Left motor\nmax");
+                    String speedValues = leftMotorPower + ",0\n";
+                    sendData(speedValues);
+                    leftMotorsTV.setText("Left motor\n" + leftMotorPower);
                     rightMotorsTV.setText("Right motor\n0");
 
                 } else if (posY < -2) {
-                    sendData("0,255\n");
+                    String speedValues = "0," + rightMotorPower + "\n";
+                    sendData(speedValues);
                     leftMotorsTV.setText("Left motor\n0");
-                    rightMotorsTV.setText("Right motor\nmax");
+                    rightMotorsTV.setText("Right motor\n" + rightMotorPower);
                 }
 
             } else if (movingReverse) {
@@ -341,19 +419,22 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
                 lastDirection = REVERSE;
 
                 if (posY <= 2 && posY >= -2) {
-                    sendData("-255,-255\n");
-                    leftMotorsTV.setText("Left motor\nmax");
-                    rightMotorsTV.setText("Right motor\nmax");
+                    String speedValues = "-" + leftMotorPower + ",-" + rightMotorPower + "\n";
+                    sendData(speedValues);
+                    leftMotorsTV.setText("Left motor\n" + leftMotorPower);
+                    rightMotorsTV.setText("Right motor\n" + rightMotorPower);
 
                 }else if (posY > 2) {
-                    sendData("-255,0\n");
-                    leftMotorsTV.setText("Left motor\nmax");
+                    String speedValues ="-" + leftMotorPower + ",0\n";
+                    sendData(speedValues);
+                    leftMotorsTV.setText("Left motor\n" + leftMotorPower);
                     rightMotorsTV.setText("Right motor\n0");
 
                 } else if (posY < -2) {
-                    sendData("0,-255\n");
+                    String speedValues = "0,-" + rightMotorPower + "\n";
+                    sendData(speedValues);
                     leftMotorsTV.setText("Left motor\n0");
-                    rightMotorsTV.setText("Right motor\nmax");
+                    rightMotorsTV.setText("Right motor\n" + rightMotorPower);
                 }
             }
 
@@ -367,7 +448,7 @@ public class MainActivity extends BaseActivity implements SensorEventListener, C
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+        return;
     }
 
     @Override

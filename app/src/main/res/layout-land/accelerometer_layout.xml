@@ -5,19 +5,21 @@
     android:orientation="horizontal"
     android:background="#1A237E">
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/reverse_ll"
         android:layout_width="150dp"
         android:layout_height="match_parent"
         android:orientation="horizontal"
-        android:gravity="center">
+        >
 
         <LinearLayout
             android:id="@+id/reverse_circle_ll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/reverse_button"
-            android:gravity="center">
+            android:gravity="center"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -29,7 +31,16 @@
                 />
         </LinearLayout>
 
-    </LinearLayout>
+        <SeekBar
+            android:id="@+id/sb_left_motor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="15dp"
+            android:max="255"
+            />
+
+    </RelativeLayout>
 
     <RelativeLayout
         android:layout_width="0dp"
@@ -114,19 +125,21 @@
 
     </RelativeLayout>
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/forward_ll"
         android:layout_width="150dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center">
+        >
 
         <LinearLayout
             android:id="@+id/forward_circle_ll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:background="@drawable/forward_button">
+            android:background="@drawable/forward_button"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -136,7 +149,16 @@
                 android:textSize="22sp"
                 android:textStyle="bold"/>
         </LinearLayout>
-    </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/sb_right_motor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="15dp"
+            android:max="255"
+            />
+    </RelativeLayout>
 
 
 </LinearLayout>
